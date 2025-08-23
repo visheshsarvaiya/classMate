@@ -9,7 +9,11 @@ import GroupChatModal from "./miscellaneous/GroupChatModal";
 import { Button } from "@chakra-ui/react";
 import { ChatState } from "../Context/ChatProvider";
 
-const ENDPOINT = "http://localhost:5000"; // ✅ backend URL
+// ✅ Create a single Axios instance
+const API = axios.create({
+  baseURL: "http://localhost:5000/api",
+  withCredentials: true, // send cookies if any
+});
 
 const MyChats = ({ fetchAgain }) => {
   const [loggedUser, setLoggedUser] = useState();
@@ -26,13 +30,15 @@ const MyChats = ({ fetchAgain }) => {
       };
 
       console.log("Fetching chats with token:", user.token);
-      const { data } = await axios.get(`${ENDPOINT}/api/chat`, config);
+
+      // ✅ Use Axios instance
+      const { data } = await API.get("/chat", config);
       setChats(data);
     } catch (error) {
       console.error("Error fetching chats:", error.response || error);
       toast({
         title: "Error Occurred!",
-        description: error.response?.data?.message || "Failed to Load the chats",
+        description: error.response?.data?.message || "Failed to load the chats",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -42,7 +48,8 @@ const MyChats = ({ fetchAgain }) => {
   }, [user, setChats, toast]);
 
   useEffect(() => {
-    setLoggedUser(JSON.parse(localStorage.getItem("userInfo")));
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    setLoggedUser(userInfo);
     fetchChats();
   }, [fetchAgain, user, fetchChats]);
 

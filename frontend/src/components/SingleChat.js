@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
   Text,
@@ -17,8 +17,8 @@ import io from "socket.io-client";
 import Lottie from "react-lottie";
 import animationData from "../animations/typing.json";
 
-const ENDPOINT = "http://localhost:5000"; // ✅ Make sure backend is running
-let socket, selectedChatCompare;
+const ENDPOINT = "http://localhost:5000";
+let socket; // single instance
 
 const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   const { selectedChat, user, notification, setNotification } = ChatState();
@@ -35,6 +35,12 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   const toast = useToast();
+
+  // --- keep latest selectedChatId in a ref to avoid stale closure
+  const selectedChatIdRef = useRef(null);
+  useEffect(() => {
+    selectedChatIdRef.current = selectedChat?._id || null;
+  }, [selectedChat]);
 
   const defaultOptions = {
     loop: true,
@@ -83,7 +89,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
       )}`;
 
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.REACT_APP_GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.REACT_APP_GEMINI_API_KEY}`,
         {
           contents: [{ parts: [{ text: prompt }] }],
         }
@@ -113,12 +119,64 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
     }
   };
 
+  // === Setup Socket Connection (single connect) ===
+  useEffect(() => {
+    if (!socket) {
+      socket = io(ENDPOINT, { transports: ["websocket"] });
+      socket.emit("setup", user);
+      socket.on("connected", () => setSocketConnected(true));
+      socket.on("typing", () => setIsTyping(true));
+      socket.on("stop typing", () => setIsTyping(false));
+    }
+    return () => {
+      // don't disconnect globally on unmount of this component if app reuses socket elsewhere
+      // If this is the only socket user, uncomment next line:
+      // socket?.disconnect();
+    };
+  }, [user]);
+
+  // === Fetch Messages for Selected Chat ===
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!selectedChat?._id) return;
+
+      try {
+        setLoading(true);
+        const config = { headers: { Authorization: `Bearer ${user.token}` } };
+        const { data } = await axios.get(
+          `${ENDPOINT}/api/message/${selectedChat._id}`,
+          config
+        );
+        setMessages(data);
+        setLoading(false);
+
+        // join room for this chat
+        socket?.emit("join chat", selectedChat._id);
+      } catch (error) {
+        console.error("Error fetching messages:", error.response || error);
+        setLoading(false);
+        toast({
+          title: "Error Occurred!",
+          description: "Failed to load messages",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "bottom",
+        });
+      }
+    };
+
+    // clear old messages when switching chats (optional but helps UI)
+    setMessages([]);
+    fetchMessages();
+  }, [selectedChat, user, toast]);
+
   // === Send Message ===
   const sendMessage = async (event) => {
     if (event.key === "Enter" && newMessage.trim() !== "") {
-      if (!selectedChat?._id) return;
+      if (!selectedChatIdRef.current) return;
 
-      socket.emit("stop typing", selectedChat._id);
+      socket?.emit("stop typing", selectedChatIdRef.current);
 
       try {
         const config = {
@@ -130,7 +188,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
 
         const payload = {
           content: newMessage,
-          chatId: selectedChat._id,
+          chatId: selectedChatIdRef.current,
         };
 
         const { data } = await axios.post(
@@ -140,8 +198,15 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
         );
 
         setNewMessage("");
-        setMessages((prev) => [...prev, data]);
-        socket.emit("new message", data);
+
+        // same chat? push locally; else let notification handle it
+        if (
+          data?.chat?._id &&
+          data.chat._id === selectedChatIdRef.current
+        ) {
+          setMessages((prev) => [...prev, data]);
+        }
+        socket?.emit("new message", data);
       } catch (error) {
         console.error("Error sending message:", error.response || error);
         toast({
@@ -159,93 +224,57 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   // === Typing Handler ===
   const typingHandler = (e) => {
     setNewMessage(e.target.value);
-    if (!socketConnected) return;
+    if (!socketConnected || !selectedChatIdRef.current) return;
 
     if (!typing) {
       setTyping(true);
-      socket.emit("typing", selectedChat._id);
+      socket?.emit("typing", selectedChatIdRef.current);
     }
 
-    let lastTypingTime = new Date().getTime();
+    const lastTypingTime = Date.now();
     setTimeout(() => {
-      const timeNow = new Date().getTime();
+      const timeNow = Date.now();
       if (timeNow - lastTypingTime >= 3000 && typing) {
-        socket.emit("stop typing", selectedChat._id);
+        socket?.emit("stop typing", selectedChatIdRef.current);
         setTyping(false);
       }
     }, 3000);
   };
 
-  // === Setup Socket Connection ===
+  // === Listen for Incoming Messages (de-duped + ref check) ===
   useEffect(() => {
-    socket = io(ENDPOINT);
-    socket.emit("setup", user);
-    socket.on("connected", () => setSocketConnected(true));
-    socket.on("typing", () => setIsTyping(true));
-    socket.on("stop typing", () => setIsTyping(false));
+    if (!socket) return;
 
-    return () => socket.disconnect();
-  }, [user]);
-
-  // === Fetch Messages for Selected Chat ===
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!selectedChat?._id) return;
-
-      try {
-        setLoading(true);
-        const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get(
-          `${ENDPOINT}/api/message/${selectedChat._id}`,
-          config
-        );
-        setMessages(data);
-        setLoading(false);
-        socket.emit("join chat", selectedChat._id);
-      } catch (error) {
-        console.error("Error fetching messages:", error.response || error);
-        setLoading(false);
-        toast({
-          title: "Error Occurred!",
-          description: "Failed to load messages",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-          position: "bottom",
-        });
-      }
-    };
-
-    fetchMessages();
-    selectedChatCompare = selectedChat;
-  }, [selectedChat, user, toast]);
-
-  // === Listen for Incoming Messages ===
-  useEffect(() => {
     const handleMessageReceived = (newMessageReceived) => {
-      if (
-        !selectedChatCompare ||
-        selectedChatCompare._id !== newMessageReceived.chat._id
-      ) {
+      // normalize id (some backends send chatId or chat)
+      const incomingChatId =
+        newMessageReceived?.chat?._id ||
+        newMessageReceived?.chatId ||
+        newMessageReceived?.chat;
+
+      const currentChatId = selectedChatIdRef.current;
+
+      if (!currentChatId || currentChatId !== incomingChatId) {
         if (!notification.find((n) => n._id === newMessageReceived._id)) {
           setNotification([newMessageReceived, ...notification]);
-          setFetchAgain(!fetchAgain);
+          setFetchAgain((prev) => !prev);
         }
-        toast({
-          title: `New message from ${newMessageReceived.sender.name}`,
-          status: "info",
-          duration: 3000,
-          isClosable: true,
-          position: "bottom-right",
-        });
-      } else {
-        setMessages((prev) => [...prev, newMessageReceived]);
+        return;
       }
+
+      // same chat => push to UI immediately
+      setMessages((prev) => [...prev, newMessageReceived]);
     };
 
+    // avoid duplicate listeners
+    socket.off("message received", handleMessageReceived);
     socket.on("message received", handleMessageReceived);
-    return () => socket.off("message received", handleMessageReceived);
-  }, [selectedChat, notification, fetchAgain, setNotification, setFetchAgain, toast]);
+
+    return () => {
+      socket.off("message received", handleMessageReceived);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notification, setNotification, setFetchAgain]);
 
   return (
     <>
@@ -282,7 +311,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
                         config
                       );
                       setMessages(data);
-                      socket.emit("join chat", selectedChat._id);
+                      socket?.emit("join chat", selectedChat._id);
                     } catch (error) {
                       toast({
                         title: "Error Occurred!",
@@ -316,7 +345,8 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
             {loading ? (
               <Text>Loading...</Text>
             ) : (
-              <ScrollableChat messages={messages} />
+              // force re-render on messages change or chat switch
+              <ScrollableChat key={`${selectedChat?._id}-${messages.length}`} messages={messages} />
             )}
 
             {/* === AI Suggestions === */}

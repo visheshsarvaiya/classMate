@@ -104,9 +104,6 @@
 
 
 
-
-// server.js
-// server.js
 const express = require("express");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
@@ -128,9 +125,12 @@ connectDB();
 const app = express();
 app.use(express.json());
 
+// -------------------- CORS --------------------
+// Allow multiple frontend dev ports
+const allowedOrigins = ["http://localhost:3000", "http://localhost:5001"];
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -166,19 +166,16 @@ const server = app.listen(PORT, () =>
 const io = new Server(server, {
   pingTimeout: 60000,
   cors: {
-    origin: "http://localhost:3000",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
 // ✅ Initialize Gemini once (outside socket)
-console.log(
-  "Gemini API Key Loaded:",
-  process.env.REACT_APP_GEMINI_API_KEY ? "✅ Yes" : "❌ No"
-);
+console.log("Gemini API Key Loaded:", !!process.env.GEMINI_API_KEY);
 
-const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 io.on("connection", (socket) => {
