@@ -1,10 +1,15 @@
-import { Button } from "@chakra-ui/button";
-import { FormControl, FormLabel } from "@chakra-ui/form-control";
-import { Input, InputGroup, InputRightElement } from "@chakra-ui/input";
-import { VStack } from "@chakra-ui/layout";
+import {
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
+  InputGroup,
+  InputRightElement,
+  VStack,
+  useToast,
+} from "@chakra-ui/react";
 import { useState } from "react";
 import axios from "axios";
-import { useToast } from "@chakra-ui/react";
 import { useHistory } from "react-router-dom";
 import { ChatState } from "../../Context/ChatProvider";
 
@@ -12,8 +17,7 @@ const Login = () => {
   const [show, setShow] = useState(false);
   const handleClick = () => setShow(!show);
   const toast = useToast();
-  
-  // Initialize as empty string to avoid uncontrolled -> controlled warning
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,9 +41,7 @@ const Login = () => {
 
     try {
       const config = {
-        headers: {
-          "Content-type": "application/json",
-        },
+        headers: { "Content-type": "application/json" },
       };
 
       const { data } = await axios.post(
@@ -55,13 +57,14 @@ const Login = () => {
         isClosable: true,
         position: "bottom",
       });
+
       setUser(data);
       localStorage.setItem("userInfo", JSON.stringify(data));
       setLoading(false);
       history.push("/chats");
     } catch (error) {
       toast({
-        title: "Error Occured!",
+        title: "Error Occurred!",
         description: error.response?.data?.message || error.message,
         status: "error",
         duration: 5000,
@@ -83,6 +86,7 @@ const Login = () => {
           onChange={(e) => setEmail(e.target.value)}
         />
       </FormControl>
+
       <FormControl id="loginPassword" isRequired>
         <FormLabel>Password</FormLabel>
         <InputGroup size="md">
@@ -99,15 +103,17 @@ const Login = () => {
           </InputRightElement>
         </InputGroup>
       </FormControl>
+
       <Button
         colorScheme="blue"
         width="100%"
-        style={{ marginTop: 15 }}
+        mt={4}
         onClick={submitHandler}
         isLoading={loading}
       >
         Login
       </Button>
+
       <Button
         variant="solid"
         colorScheme="red"
