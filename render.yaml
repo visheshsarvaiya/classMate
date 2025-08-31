@@ -1,15 +1,17 @@
 services:
   - type: web
     name: classmate-backend
+    env: node
     rootDirectory: backend
     buildCommand: "npm install"
     startCommand: "npm start"
     envVars:
       - key: NODE_VERSION
-        value: 22.15.1   # or your version
+        value: 22.15.1
 
   - type: web
     name: classmate-frontend
+    env: node
     rootDirectory: frontend
     buildCommand: "npm install && npm run build"
     startCommand: "npm run start"
