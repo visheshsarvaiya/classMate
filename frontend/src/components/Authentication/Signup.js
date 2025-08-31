@@ -10,13 +10,13 @@ import {
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useState } from "react";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; // ✅ FIXED import
 
 const Signup = () => {
   const [show, setShow] = useState(false);
   const handleClick = () => setShow(!show);
   const toast = useToast();
-  const history = useHistory();
+  const navigate = useNavigate(); // ✅ FIXED
 
   const [name, setName] = useState();
   const [email, setEmail] = useState();
@@ -70,7 +70,7 @@ const Signup = () => {
 
       localStorage.setItem("userInfo", JSON.stringify(data));
       setPicLoading(false);
-      history.push("/chats");
+      navigate("/chats"); // ✅ FIXED
     } catch (error) {
       toast({
         title: "Error Occurred!",
