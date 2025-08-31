@@ -11,7 +11,7 @@ import { ChatState } from "../Context/ChatProvider";
 
 // ✅ Create a single Axios instance
 const API = axios.create({
-  baseURL: "https://classmate-3.onrender.com",
+  baseURL: "https://classmate-3.onrender.com/api",
   withCredentials: true, // send cookies if any
 });
 
