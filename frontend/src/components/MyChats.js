@@ -1,5 +1,5 @@
 import { AddIcon } from "@chakra-ui/icons";
-import { Box, Stack, Text } from "@chakra-ui/layout";
+import { Box, Stack, Text } from "@chakra-ui/react";
 import { useToast } from "@chakra-ui/toast";
 import axios from "axios";
 import { useEffect, useState, useCallback } from "react";
@@ -38,7 +38,8 @@ const MyChats = ({ fetchAgain }) => {
       console.error("Error fetching chats:", error.response || error);
       toast({
         title: "Error Occurred!",
-        description: error.response?.data?.message || "Failed to load the chats",
+        description:
+          error.response?.data?.message || "Failed to load the chats",
         status: "error",
         duration: 5000,
         isClosable: true,
