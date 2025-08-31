@@ -1,35 +1,34 @@
-import { Button } from "@chakra-ui/react";
-import { useDisclosure } from "@chakra-ui/react";
-import { Input } from "@chakra-ui/react";
-import { Box, Text } from "@chakra-ui/react";
+import React, { useState } from "react";
 import {
+  Button,
+  Box,
+  Text,
+  Input,
   Menu,
   MenuButton,
   MenuDivider,
   MenuItem,
   MenuList,
-} from "@chakra-ui/react";
-import {
   Drawer,
   DrawerBody,
   DrawerContent,
   DrawerHeader,
   DrawerOverlay,
+  Tooltip,
+  Avatar,
+  Badge,
+  useToast,
+  Spinner,
+  useDisclosure,
 } from "@chakra-ui/react";
-import { Tooltip } from "@chakra-ui/react";
 import { BellIcon, ChevronDownIcon } from "@chakra-ui/icons";
-import { Avatar } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 import axios from "axios";
-import { useToast } from "@chakra-ui/react";
+
 import ChatLoading from "../ChatLoading";
-import { Spinner } from "@chakra-ui/react";
 import ProfileModal from "./ProfileModal";
-import NotificationBadge from "react-notification-badge";
-import { Effect } from "react-notification-badge";
-import { getSender } from "../../config/ChatLogics";
 import UserListItem from "../userAvatar/UserListItem";
+import { getSender } from "../../config/ChatLogics";
 import { ChatState } from "../../Context/ChatProvider";
 
 function SideDrawer() {
@@ -50,6 +49,7 @@ function SideDrawer() {
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
+
   const logoutHandler = () => {
     localStorage.removeItem("userInfo");
     navigate("/");
@@ -69,32 +69,25 @@ function SideDrawer() {
 
     try {
       setLoading(true);
-
-      const config = {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      };
-
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.get(`/api/user?search=${search}`, config);
 
-      setLoading(false);
       setSearchResult(data);
+      setLoading(false);
     } catch (error) {
       toast({
-        title: "Error Occured!",
+        title: "Error Occurred!",
         description: "Failed to Load the Search Results",
         status: "error",
         duration: 5000,
         isClosable: true,
         position: "bottom-left",
       });
+      setLoading(false);
     }
   };
 
   const accessChat = async (userId) => {
-    console.log(userId);
-
     try {
       setLoadingChat(true);
       const config = {
@@ -118,39 +111,52 @@ function SideDrawer() {
         isClosable: true,
         position: "bottom-left",
       });
+      setLoadingChat(false);
     }
   };
 
   return (
     <>
       <Box
-        d="flex"
+        display="flex"
         justifyContent="space-between"
         alignItems="center"
         bg="white"
         w="100%"
-        p="5px 10px 5px 10px"
+        p="5px 10px"
         borderWidth="5px"
       >
         <Tooltip label="Search Users to chat" hasArrow placement="bottom-end">
           <Button variant="ghost" onClick={onOpen}>
             <i className="fas fa-search"></i>
-            <Text d={{ base: "none", md: "flex" }} px={4}>
+            <Text display={{ base: "none", md: "flex" }} px={4}>
               Search User
             </Text>
           </Button>
         </Tooltip>
+
         <Text fontSize="2xl" fontFamily="Work sans">
           Class-Mate
         </Text>
-        <div>
+
+        <Box display="flex" alignItems="center">
           <Menu>
-            <MenuButton p={1}>
-              <NotificationBadge
-                count={notification.length}
-                effect={Effect.SCALE}
-              />
+            <MenuButton p={1} position="relative">
               <BellIcon fontSize="2xl" m={1} />
+              {notification.length > 0 && (
+                <Badge
+                  position="absolute"
+                  top="-1"
+                  right="-1"
+                  borderRadius="full"
+                  bg="red.500"
+                  color="white"
+                  fontSize="0.7em"
+                  px={2}
+                >
+                  {notification.length}
+                </Badge>
+              )}
             </MenuButton>
             <MenuList pl={2}>
               {!notification.length && "No New Messages"}
@@ -169,6 +175,7 @@ function SideDrawer() {
               ))}
             </MenuList>
           </Menu>
+
           <Menu>
             <MenuButton as={Button} bg="white" rightIcon={<ChevronDownIcon />}>
               <Avatar
@@ -180,13 +187,13 @@ function SideDrawer() {
             </MenuButton>
             <MenuList>
               <ProfileModal user={user}>
-                <MenuItem>My Profile</MenuItem>{" "}
+                <MenuItem>My Profile</MenuItem>
               </ProfileModal>
               <MenuDivider />
               <MenuItem onClick={logoutHandler}>Logout</MenuItem>
             </MenuList>
           </Menu>
-        </div>
+        </Box>
       </Box>
 
       <Drawer placement="left" onClose={onClose} isOpen={isOpen}>
@@ -194,7 +201,7 @@ function SideDrawer() {
         <DrawerContent>
           <DrawerHeader borderBottomWidth="1px">Search Users</DrawerHeader>
           <DrawerBody>
-            <Box d="flex" pb={2}>
+            <Box display="flex" pb={2}>
               <Input
                 placeholder="Search by name or email"
                 mr={2}
@@ -203,6 +210,7 @@ function SideDrawer() {
               />
               <Button onClick={handleSearch}>Go</Button>
             </Box>
+
             {loading ? (
               <ChatLoading />
             ) : (
@@ -214,7 +222,8 @@ function SideDrawer() {
                 />
               ))
             )}
-            {loadingChat && <Spinner ml="auto" d="flex" />}
+
+            {loadingChat && <Spinner ml="auto" display="flex" />}
           </DrawerBody>
         </DrawerContent>
       </Drawer>
