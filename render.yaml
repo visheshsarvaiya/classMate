@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: classmate-backend
+    rootDirectory: backend
+    buildCommand: "npm install"
+    startCommand: "npm start"
+    envVars:
+      - key: NODE_VERSION
+        value: 22.15.1   # or your version
+
+  - type: web
+    name: classmate-frontend
+    rootDirectory: frontend
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm run start"
+    envVars:
+      - key: NODE_VERSION
+        value: 22.15.1
