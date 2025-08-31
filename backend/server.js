@@ -102,8 +102,6 @@
 //   });
 // });
 
-
-
 const express = require("express");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
@@ -126,8 +124,25 @@ const app = express();
 app.use(express.json());
 
 // -------------------- CORS --------------------
-// Allow multiple frontend dev ports
-const allowedOrigins = ["http://localhost:3000", "http://localhost:5001"];
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5001",
+  "https://classs-mate.netlify.app", // ✅ add this
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
 app.use(
   cors({
     origin: allowedOrigins,
