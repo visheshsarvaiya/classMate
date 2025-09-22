@@ -1,12 +1,10 @@
 import { AddIcon } from "@chakra-ui/icons";
-import { Box, Stack, Text } from "@chakra-ui/react";
-import { useToast } from "@chakra-ui/react";
+import { Box, Stack, Text, Button, useToast } from "@chakra-ui/react";
 import axios from "axios";
 import { useEffect, useState, useCallback } from "react";
 import { getSender } from "../config/ChatLogics";
 import ChatLoading from "./ChatLoading";
 import GroupChatModal from "./miscellaneous/GroupChatModal";
-import { Button } from "@chakra-ui/react";
 import { ChatState } from "../Context/ChatProvider";
 
 // ✅ Create a single Axios instance
@@ -20,6 +18,7 @@ const MyChats = ({ fetchAgain }) => {
   const { selectedChat, setSelectedChat, user, chats, setChats } = ChatState();
   const toast = useToast();
 
+  // ✅ Fetch chats safely
   const fetchChats = useCallback(async () => {
     if (!user?.token) return;
     try {
@@ -31,7 +30,6 @@ const MyChats = ({ fetchAgain }) => {
 
       console.log("Fetching chats with token:", user.token);
 
-      // ✅ Use Axios instance
       const { data } = await API.get("/chat", config);
       setChats(data);
     } catch (error) {
@@ -65,6 +63,7 @@ const MyChats = ({ fetchAgain }) => {
       borderRadius="lg"
       borderWidth="1px"
     >
+      {/* Header */}
       <Box
         pb={3}
         px={3}
@@ -87,6 +86,7 @@ const MyChats = ({ fetchAgain }) => {
         </GroupChatModal>
       </Box>
 
+      {/* Chat List */}
       <Box
         display="flex"
         flexDir="column"
@@ -110,17 +110,22 @@ const MyChats = ({ fetchAgain }) => {
                 borderRadius="lg"
                 key={chat._id}
               >
+                {/* Chat Name */}
                 <Text>
                   {!chat.isGroupChat
                     ? getSender(loggedUser, chat.users)
-                    : chat.chatName}
+                    : chat.chatName || "Unnamed Group"}
                 </Text>
+
+                {/* Latest Message */}
                 {chat.latestMessage && (
-                  <Text fontSize="xs">
-                    <b>{chat.latestMessage.sender.name} : </b>
-                    {chat.latestMessage.content.length > 50
-                      ? chat.latestMessage.content.substring(0, 51) + "..."
-                      : chat.latestMessage.content}
+                  <Text fontSize="xs" noOfLines={1}>
+                    <b>{chat.latestMessage?.sender?.name || "Unknown"}: </b>
+                    {chat.latestMessage?.content
+                      ? chat.latestMessage.content.length > 50
+                        ? chat.latestMessage.content.substring(0, 51) + "..."
+                        : chat.latestMessage.content
+                      : "No message yet"}
                   </Text>
                 )}
               </Box>
