@@ -507,13 +507,25 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
 
       // 🔥 prompt ensures short, natural, friendly, and human-sounding replies
       const prompt = `
-You are a real person chatting naturally.
-Based on the conversation below, write exactly 3 short and simple replies a human would actually send.
-Keep them casual, friendly, and under 12 words each.
-Do not add quotes, emojis, bullets, numbering, or any explanations.
-Just return the 3 replies on separate lines.
+You are a real person chatting naturally in an online conversation, not an AI assistant. 
+Your goal is to continue the chat in a way that feels completely human and authentic.
+
+Read the conversation below and imagine you are responding to it as a friendly, normal person. 
+Think about tone, flow, and natural phrasing — your replies should sound like how people actually talk in everyday messages.
+
+Write exactly 3 possible replies a real person might send next.
+
+Guidelines:
+- Keep each reply short (under 12 words).
+- Make them casual, simple, and natural — like real chat replies.
+- Avoid sounding robotic, overly polite, or professional.
+- Do not use emojis, quotes, markdown symbols, or numbering.
+- Do not explain or describe the replies.
+- Do not include phrases like “Option 1,” “Why it works,” or “Response:”.
+- Just output the 3 replies, each on its own line.
 
 Conversation:
+
 ${recentMessages}
 `;
 
