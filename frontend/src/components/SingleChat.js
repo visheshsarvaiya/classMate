@@ -89,7 +89,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
       )}`;
 
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.REACT_APP_GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.REACT_APP__API_KEY}`,
         {
           contents: [{ parts: [{ text: prompt }] }],
         }
@@ -200,10 +200,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
         setNewMessage("");
 
         // same chat? push locally; else let notification handle it
-        if (
-          data?.chat?._id &&
-          data.chat._id === selectedChatIdRef.current
-        ) {
+        if (data?.chat?._id && data.chat._id === selectedChatIdRef.current) {
           setMessages((prev) => [...prev, data]);
         }
         socket?.emit("new message", data);
@@ -346,7 +343,10 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
               <Text>Loading...</Text>
             ) : (
               // force re-render on messages change or chat switch
-              <ScrollableChat key={`${selectedChat?._id}-${messages.length}`} messages={messages} />
+              <ScrollableChat
+                key={`${selectedChat?._id}-${messages.length}`}
+                messages={messages}
+              />
             )}
 
             {/* === AI Suggestions === */}
@@ -401,7 +401,12 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
           </Box>
         </>
       ) : (
-        <Box display="flex" alignItems="center" justifyContent="center" h="100%">
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          h="100%"
+        >
           <Text fontSize="3xl" pb={3} fontFamily="Work sans">
             Click on a user to start chatting
           </Text>
