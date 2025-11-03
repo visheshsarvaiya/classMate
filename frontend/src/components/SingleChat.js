@@ -507,9 +507,11 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
 
       // 🔥 prompt ensures short, natural, friendly, and human-sounding replies
       const prompt = `
-You're an intelligent chat assistant.
-Based on the conversation below, suggest exactly 3 short, friendly, and human-like replies (each under 20 words).
-The replies should sound natural — like how a real person would respond in a chat — not robotic.
+You are a real person chatting naturally.
+Based on the conversation below, write exactly 3 short and simple replies a human would actually send.
+Keep them casual, friendly, and under 12 words each.
+Do not add quotes, emojis, bullets, numbering, or any explanations.
+Just return the 3 replies on separate lines.
 
 Conversation:
 ${recentMessages}
