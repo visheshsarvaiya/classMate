@@ -27,6 +27,7 @@ const Login = () => {
 
   const submitHandler = async () => {
     setLoading(true);
+
     if (!email || !password) {
       toast({
         title: "Please Fill all the Fields",
@@ -41,7 +42,10 @@ const Login = () => {
 
     try {
       const config = {
-        headers: { "Content-type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
+        withCredentials: true, // ✅ REQUIRED
       };
 
       const { data } = await axios.post(

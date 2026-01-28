@@ -23,6 +23,7 @@ app.use(express.json());
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5000",
+  "http://localhost:5002",
   "https://classs-mate.netlify.app",
 ];
 
@@ -36,8 +37,12 @@ app.use(
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+app.options("*", cors());
 
 // -------------------- API Routes --------------------
 app.use("/api/user", userRoutes);
@@ -62,9 +67,9 @@ if (process.env.NODE_ENV === "production") {
 }
 
 // -------------------- Server --------------------
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () =>
-  console.log(`🚀 Server running on PORT ${PORT}`)
+  console.log(`Server running on PORT ${PORT}`)
 );
 
 // -------------------- Socket.IO --------------------
@@ -77,21 +82,17 @@ const io = new Server(server, {
   },
 });
 
-// -------------------- Gemini Init (Safe) --------------------
-console.log("Gemini API Key Loaded:", !!process.env.GEMINI_API_KEY);
-
+// -------------------- Gemini Init --------------------
 let model = null;
 
 if (process.env.GEMINI_API_KEY) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-} else {
-  console.error("❌ Gemini API key missing");
 }
 
 // -------------------- Socket Events --------------------
 io.on("connection", (socket) => {
-  console.log("⚡ New socket connected:", socket.id);
+  console.log("New socket connected:", socket.id);
 
   socket.on("setup", (userData) => {
     socket.join(userData._id);
@@ -115,12 +116,10 @@ io.on("connection", (socket) => {
       socket.in(user._id).emit("message received", newMessageRecieved);
     });
 
-    // -------------------- Gemini Suggestions --------------------
     if (!model) return;
 
     try {
       const prompt = `Suggest 3 short professional replies for this message:\n"${newMessageRecieved.content}"`;
-
       const result = await model.generateContent(prompt);
       const text = result.response.text();
 
@@ -132,12 +131,12 @@ io.on("connection", (socket) => {
 
       socket.emit("suggestions", suggestions);
     } catch (err) {
-      console.error("❌ Gemini error:", err.message);
+      console.error("Gemini error:", err.message);
     }
   });
 
   socket.on("disconnect", () => {
     if (socket.userId) socket.leave(socket.userId);
-    console.log("❌ User disconnected:", socket.userId || "Unknown");
+    console.log("User disconnected:", socket.userId || "Unknown");
   });
 });
